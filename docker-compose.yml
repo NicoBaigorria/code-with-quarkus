@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:13
+    container_name: postgres_db
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    networks:
+      - my_network
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Persist data between restarts
+
+  app:
+    image: quarkus/code-with-quarkus-jvm  # Your Quarkus app image
+    container_name: quarkus_app
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+    depends_on:
+      - db
+    networks:
+      - my_network
+    ports:
+      - "8082:8082"  # Expose your Quarkus app on port 8082
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "postgres_db", "-p", "5432"]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+
+networks:
+  my_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
